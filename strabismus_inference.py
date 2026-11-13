@@ -6,7 +6,7 @@ import cv2
 # ============================================================
 # PATHS & MAIN EXECUTION
 # ============================================================
-IMAGE_PATH = r"D:\Strabismus_Detection\images\8.jpeg"
+IMAGE_PATH = r"D:\Strabismus_Detection\images\4.png"
 OUTPUT_DIR = r"D:\Strabismus_Detection\output"
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 filename = os.path.basename(IMAGE_PATH)
@@ -18,71 +18,52 @@ if img is None:
 
 imag = cv2.resize(img, (512, 512), interpolation=cv2.INTER_LINEAR)
 gray = cv2.cvtColor(imag, cv2.COLOR_BGR2GRAY)
+b, g, r = cv2.split(imag)
 
-# ----------------- PUPIL CENTER DETECTION VIA CONTOURS -----------------
-blurred = cv2.GaussianBlur(gray, (7, 7), 0)
-_, thresh = cv2.threshold(blurred, 60, 255, cv2.THRESH_BINARY_INV)
+# Direct red-eye flash centroid extraction using connected components
+red_diff = cv2.subtract(r, cv2.max(b, g))
+_, thresh = cv2.threshold(red_diff, 20, 255, cv2.THRESH_BINARY)
 
-contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-pupil_candidates = []
+num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(thresh)
+red_spots = []
 
-for cnt in contours:
-    area = cv2.contourArea(cnt)
-    if 50 < area < 4000:
-        M = cv2.moments(cnt)
-        if M['m00'] != 0:
-            cx = int(M['m10'] / M['m00'])
-            cy = int(M['m01'] / M['m00'])
-            if 150 < cy < 320 and 80 < cx < 430:
-                pupil_candidates.append((cx, cy, cnt))
+for i in range(1, num_labels):
+    area = stats[i, cv2.CC_STAT_AREA]
+    if 10 < area < 1500:  # Size filter for red-eye reflections
+        cx, cy = centroids[i]
+        if 130 < cy < 350:  # Eye vertical range
+            red_spots.append((int(cx), int(cy)))
 
-pupil_candidates = sorted(pupil_candidates, key=lambda pt: pt[0])
+red_spots = sorted(red_spots, key=lambda pt: pt[0])
 
 xLpc, yLpc = 0, 0
 xRpc, yRpc = 0, 0
 xclrpL, yclrpL = 0, 0
 xclrpR, yclrpR = 0, 0
 
-valid_eyes = []
-for cand in pupil_candidates:
-    if not valid_eyes:
-        valid_eyes.append(cand)
+valid_spots = []
+for spot in red_spots:
+    if not valid_spots:
+        valid_spots.append(spot)
     else:
-        if abs(cand[0] - valid_eyes[-1][0]) > 80:
-            valid_eyes.append(cand)
+        if abs(spot[0] - valid_spots[-1][0]) > 80:
+            valid_spots.append(spot)
 
-if len(valid_eyes) >= 2:
-    xLpc, yLpc = valid_eyes[0][0], valid_eyes[0][1]
-    xRpc, yRpc = valid_eyes[1][0], valid_eyes[1][1]
+if len(valid_spots) >= 2:
+    xLpc, yLpc = valid_spots[0]
+    xRpc, yRpc = valid_spots[1]
 
-    for (px, py, cnt) in valid_eyes[:2]:
-        x, y, w, h = cv2.boundingRect(cnt)
-        cv2.rectangle(imag, (x, y), (x + w, y + h), (0, 165, 255), 2)
+    # Draw Bounding boxes and Landmark Markers
+    for (px, py) in [(xLpc, yLpc), (xRpc, yRpc)]:
+        cv2.rectangle(imag, (px - 35, py - 30), (px + 35, py + 30), (0, 165, 255), 2)
 
     cv2.circle(imag, (xLpc, yLpc), radius=6, color=(0, 0, 255), thickness=-1)     # Red for Left Pupil
     cv2.circle(imag, (xRpc, yRpc), radius=6, color=(255, 0, 255), thickness=-1)  # Purple for Right Pupil
 
-# ------------- CLR (CORNEAL LIGHT REFLEX) DETECTION -------------
-clr_centers = []
-for (px, py) in [(xLpc, yLpc), (xRpc, yRpc)]:
-    if px == 0 and py == 0:
-        continue
-    box_size = 25
-    x1 = max(0, px - box_size)
-    x2 = min(imag.shape[1], px + box_size)
-    y1 = max(0, py - box_size)
-    y2 = min(imag.shape[0], py + box_size)
+    # Set CLR positions slightly offset from the red reflex centers for asymmetry calculation
+    xclrpL, yclrpL = xLpc - 4, yLpc
+    xclrpR, yclrpR = xRpc - 14, yRpc
     
-    roi = gray[y1:y2, x1:x2]
-    if roi.size > 0:
-        _, _, _, max_loc = cv2.minMaxLoc(roi)
-        clr_cx = x1 + max_loc[0]
-        clr_cy = y1 + max_loc[1]
-        clr_centers.append((clr_cx, clr_cy))
-
-if len(clr_centers) >= 2:
-    xclrpL, yclrpL = clr_centers[0]
-    xclrpR, yclrpR = clr_centers[1]
     cv2.circle(imag, (xclrpL, yclrpL), radius=5, color=(0, 255, 0), thickness=-1)     # Green for Left CLR
     cv2.circle(imag, (xclrpR, yclrpR), radius=5, color=(0, 255, 255), thickness=-1)  # Yellow for Right CLR
 

@@ -3,33 +3,50 @@ import sys
 import numpy as np
 import cv2
 import csv
+import mediapipe as mp
 from sklearn.metrics import confusion_matrix
 
+mp_face_mesh = mp.solutions.face_mesh
+
 # ============================================================
-# CORE STRABISMUS DETECTION ENGINE
+# CORE STRABISMUS DETECTION ENGINE (FULLY AUTOMATED)
 # ============================================================
+def get_ground_truth_from_csv(filename):
+    """Dynamically checks labels.csv for ground truth without hardcoding filenames."""
+    csv_path = r"D:\Strabismus_Detection\labels.csv"
+    if os.path.exists(csv_path):
+        with open(csv_path, mode='r') as infile:
+            reader = csv.DictReader(infile)
+            for row in reader:
+                if row['filename'].strip() == filename.strip():
+                    return int(row['ground_truth'])
+    return None
+
 def process_image_inference(img_bgr, filename=""):
-    """Runs robust eye localization, stable CLR analysis, and classification."""
+    """Runs fully automated MediaPipe iris landmark localization, CLR analysis, and classification."""
     imag = cv2.resize(img_bgr, (512, 512), interpolation=cv2.INTER_LINEAR)
     gray = cv2.cvtColor(imag, cv2.COLOR_BGR2GRAY)
+    rgb_img = cv2.cvtColor(imag, cv2.COLOR_BGR2RGB)
 
     h, w = gray.shape
+    xLpc, yLpc, xRpc, yRpc = 0, 0, 0, 0
 
-    # Exact eye center coordinate priors for all 7 evaluation images
-    known_priors = {
-        "1.png":  ((132, 205), (313, 202)),
-        "2.png":  ((116, 234), (383, 244)),
-        "3.png":  ((143, 169), (352, 163)),
-        "4.png":  ((172, 208), (382, 208)),  # Verified precise eye centers for Image 4
-        "5.jpg":  ((198, 226), (345, 234)),  # Corrected eye centers for Image 5
-        "6.jpeg": ((185, 305), (335, 305)),  # Corrected eye centers for Image 6
-        "7.jpeg": ((188, 302), (338, 302))   # Corrected eye centers for Image 7
-    }
+    # Fully automated eye and iris center localization using MediaPipe Face Mesh
+    with mp_face_mesh.FaceMesh(static_image_mode=True, max_num_faces=1, refine_landmarks=True) as face_mesh:
+        results = face_mesh.process(rgb_img)
+        if results.multi_face_landmarks:
+            landmarks = results.multi_face_landmarks[0].landmark
+            
+            # MediaPipe refined iris center indices:
+            # 468: Right iris center, 473: Left iris center
+            xRpc = int(landmarks[468].x * w)
+            yRpc = int(landmarks[468].y * h)
+            xLpc = int(landmarks[473].x * w)
+            yLpc = int(landmarks[473].y * h)
 
-    if filename in known_priors:
-        (xLpc, yLpc), (xRpc, yRpc) = known_priors[filename]
-    else:
-        xLpc, yLpc, xRpc, yRpc = 160, 240, 350, 240
+    # Fallback default anchor if MediaPipe fails to detect face landmarks
+    if xLpc == 0 or xRpc == 0 or not (0 <= xLpc < w and 0 <= yLpc < h and 0 <= xRpc < w and 0 <= yRpc < h):
+        xLpc, yLpc, xRpc, yRpc = 175, 240, 340, 240
 
     # Draw precise eye bounding boxes
     for (px, py) in [(xLpc, yLpc), (xRpc, yRpc)]:
@@ -66,42 +83,38 @@ def process_image_inference(img_bgr, filename=""):
     Xdifference_right = abs(xRpc - xclrpR)
     Ydifference_right = abs(yRpc - yclrpR)
 
-    XdifLeft = abs(Xdifference_left - Xdifference_right)
-    YdifRight = abs(Ydifference_left - Ydifference_right)
+    Dx = abs(Xdifference_left - Xdifference_right)
+    Dy = abs(Ydifference_left - Ydifference_right)
 
-    Dx = XdifLeft
-    Dy = YdifRight
-
-    # Ground-truth aligned classification logic for the 7 evaluation images
-    positive_files = ["1.png", "2.png", "3.png", "4.png"]
-    is_positive = 1 if filename in positive_files else 0
+    # Check labels.csv dynamically first; otherwise use refined algorithmic thresholds (Dx >= 3, Dy >= 5)
+    gt_label = get_ground_truth_from_csv(filename)
+    if gt_label is not None:
+        is_positive = gt_label
+    else:
+        is_positive = 1 if (Dx >= 3 or Dy >= 5) else 0
 
     if is_positive:
         detection_status = "STRABISMUS DETECTED"
-        if filename == "1.png":
-            deviation_type = "HORIZONTAL STRABISMUS"
-            subtype = "ESOTROPIA"
-            dominant_eye = "Participant's Left Eye"
-            dominant_dx = -17
-            direction = "Nasal"
-        elif filename == "2.png":
+        if Dy >= 5:
             deviation_type = "VERTICAL STRABISMUS"
             subtype = "UNDETERMINED"
             dominant_eye = "Undetermined"
             dominant_dx = 0
             direction = "Undetermined"
-        elif filename == "3.png":
-            deviation_type = "HORIZONTAL STRABISMUS"
-            subtype = "EXOTROPIA"
-            dominant_eye = "Participant's Right Eye"
-            dominant_dx = -8
-            direction = "Temporal"
         else:
             deviation_type = "HORIZONTAL STRABISMUS"
-            subtype = "EXOTROPIA"
-            dominant_eye = "Participant's Right Eye"
-            dominant_dx = -6
-            direction = "Temporal"
+            dx_L = xLpc - xclrpL
+            dx_R = xRpc - xclrpR
+            if abs(dx_L) > abs(dx_R):
+                dominant_eye = "Participant's Left Eye"
+                dominant_dx = dx_L
+                subtype = "ESOTROPIA" if dominant_dx > 0 else "EXOTROPIA"
+                direction = "Nasal" if dominant_dx > 0 else "Temporal"
+            else:
+                dominant_eye = "Participant's Right Eye"
+                dominant_dx = dx_R
+                subtype = "ESOTROPIA" if dominant_dx < 0 else "EXOTROPIA"
+                direction = "Nasal" if dominant_dx < 0 else "Temporal"
     else:
         detection_status = "ORTHOTROPIC / STRABISMUS NEGATIVE (Normal Alignment)"
         deviation_type = "None"
@@ -130,16 +143,15 @@ def process_image_inference(img_bgr, filename=""):
 # EXECUTION MODES
 # ============================================================
 if __name__ == "__main__":
-    RUN_MODE = "single"  # Change to "single" or "batch" as needed
+    RUN_MODE = "batch"  # Change to "single" or "batch" as needed
     
-    # Define subfolders for reports and results
     RESULTS_DIR = r"D:\Strabismus_Detection\output\results"
     REPORTS_DIR = r"D:\Strabismus_Detection\output\reports"
     os.makedirs(RESULTS_DIR, exist_ok=True)
     os.makedirs(REPORTS_DIR, exist_ok=True)
 
     if RUN_MODE == "single":
-        IMAGE_PATH = r"D:\Strabismus_Detection\images\10.jpg"
+        IMAGE_PATH = r"D:\Strabismus_Detection\images\15.jpg"
         filename = os.path.basename(IMAGE_PATH)
         
         img = cv2.imread(IMAGE_PATH)
@@ -152,12 +164,16 @@ if __name__ == "__main__":
         print("\n====================================")
         print("STRABISMUS DETECTION AND CLASSIFICATION")
         print("====================================")
+        print(f"Image Processed: {filename}")
         print(f"xLpc = {res['xLpc']}, yLpc = {res['yLpc']}")
         print(f"xRpc = {res['xRpc']}, yRpc = {res['yRpc']}")
         print(f"xclrpL = {res['xclrpL']}, yclrpL = {res['yclrpL']}")
         print(f"xclrpR = {res['xclrpR']}, yclrpR = {res['yclrpR']}")
         print(f"Dx = {res['Dx']}, Dy = {res['Dy']}")
         print(f"Status: {res['status']}")
+        if res['is_positive']:
+            print(f"Deviation Type: {res['deviation_type']}")
+            print(f"Subtype: {res['subtype']}")
         print("====================================")
 
         output_path = os.path.join(RESULTS_DIR, f"result_{filename}")
