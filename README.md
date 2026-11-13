@@ -49,6 +49,7 @@ Open strabismus_pipeline.py and set the execution mode to either "single" or "ba
   
 Run the script from your terminal:
 
+
 python strabismus_pipeline.py
 
 
