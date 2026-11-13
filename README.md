@@ -43,7 +43,9 @@ Open strabismus_pipeline.py and set the execution mode to either "single" or "ba
 
 1.Single Run Mode: Analyzes a specified image file and outputs its annotated result and text report.
 
+
 2. Batch Evaluation Mode: Iterates through all entries in labels.csv, computes performance metrics, and generates batch reports.
+   
   
 Run the script from your terminal:
 
