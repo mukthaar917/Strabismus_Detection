@@ -1,6 +1,9 @@
-Strabismus Detection & Classification PipelineAn automated Python-based computer vision pipeline designed to detect and classify strabismus using MediaPipe facial landmark analysis and Corneal Light Reflex (CLR) localization. The system computes precise horizontal ($Dx$) and vertical ($Dy$) pupillary asymmetry metrics without requiring manual coordinate priors or hardcoded filename lists.
+Strabismus Detection & Classification 
 
-Features
+
+An automated Python-based computer vision pipeline designed to detect and classify strabismus using MediaPipe facial landmark analysis and Corneal Light Reflex (CLR) localization. The system computes precise horizontal ($Dx$) and vertical ($Dy$) pupillary asymmetry metrics without requiring manual coordinate priors or hardcoded filename lists.
+
+Features:
 
 1. Fully Automated Landmark Extraction: Leverages MediaPipe Face Mesh (with refine_landmarks=True) to precisely locate iris centers and pupil coordinates.
 2. Corneal Light Reflex (CLR) Analysis: Automatically isolates eye regions of interest (ROI) and tracks light reflex centers using OpenCV intensity mapping.
@@ -18,7 +21,7 @@ Strabismus_Detection/
 ├── requirements.txt         # Project dependencies
 └── README.md                # Project documentation
 
-Installation & Setup
+Installation & Setup:
 
 1. Clone the Repository:
 
@@ -34,7 +37,7 @@ python -m venv .venv
 
 pip install -r requirements.txt
 
-Usage
+Usage:
 
 Open strabismus_pipeline.py and set the execution mode to either "single" or "batch":
 
