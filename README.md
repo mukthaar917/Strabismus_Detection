@@ -53,55 +53,90 @@ python strabismus_pipeline.py
 STRABISMUS DETECTION AND CLASSIFICATION REPORT
 ====================================
 
+
 <img width="512" height="512" alt="result_1" src="https://github.com/user-attachments/assets/7ee442ca-ee41-4502-9d3d-0a65fb0736e2" />
 
+
 Strabismus Status: STRABISMUS DETECTED
+
 Deviation Type: HORIZONTAL STRABISMUS
+
 Dominant Eye: Participant's Left Eye
+
 Dominant Displacement: -8
+
 Displacement Direction: Temporal
+
 Horizontal Strabismus Type: EXOTROPIA
 
 
 <img width="512" height="512" alt="result_2" src="https://github.com/user-attachments/assets/6e4cdb09-93ba-41e8-86ba-30043aaaa8df" />
 
+
 Strabismus Status: STRABISMUS DETECTED
+
 Deviation Type: HORIZONTAL STRABISMUS
+
 Dominant Eye: Participant's Left Eye
+
 Dominant Displacement: 10
+
 Displacement Direction: Nasal
+
 Horizontal Strabismus Type: ESOTROPIA
 
 
 <img width="512" height="512" alt="result_10" src="https://github.com/user-attachments/assets/bfb773f6-9c92-4f6d-bd58-13b4ae4bfa3f" />
 
+
 Strabismus Status: STRABISMUS DETECTED
+
 Deviation Type: HORIZONTAL STRABISMUS
+
 Dominant Eye: Participant's Right Eye
+
 Dominant Displacement: -9
+
 Displacement Direction: Nasal
+
 Horizontal Strabismus Type: ESOTROPIA
 
 
 <img width="512" height="512" alt="result_4" src="https://github.com/user-attachments/assets/0d10ce4b-44db-4ba0-a977-ff41a0d9aa2c" />
 
+
 Strabismus Status: STRABISMUS DETECTED
+
 Deviation Type: HORIZONTAL STRABISMUS
+
 Dominant Eye: Participant's Left Eye
+
 Dominant Displacement: 9
+
 Displacement Direction: Nasal
+
 Horizontal Strabismus Type: ESOTROPIA
 
 
 <img width="512" height="512" alt="result_13" src="https://github.com/user-attachments/assets/7e7dc10d-5d2c-4d4d-9212-5bef0d073683" />
 
+
 Strabismus Status: STRABISMUS DETECTED
+
 Deviation Type: HORIZONTAL STRABISMUS
+
 Dominant Eye: Participant's Left Eye
+
 Dominant Displacement: 10
+
 Displacement Direction: Nasal
+
 Horizontal Strabismus Type: ESOTROPIA
 
+
+
 Note: Full detailed text reports and annotated images are automatically generated in output/reports/ and output/results/ during execution.
+
+
 
 LicenseDeveloped for computer vision and clinical research applications.
