@@ -1,4 +1,4 @@
-Strabismus Detection & Classification 
+STRABISMUS DETECTION AND CLASSIFICATION
 
 
 An automated Python-based computer vision pipeline designed to detect and classify strabismus using MediaPipe facial landmark analysis and Corneal Light Reflex (CLR) localization. The system computes precise horizontal ($Dx$) and vertical ($Dy$) pupillary asymmetry metrics without requiring manual coordinate priors or hardcoded filename lists.
