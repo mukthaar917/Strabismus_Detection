@@ -1,0 +1,10 @@
+opencv-python==4.8.1.78
+h5py==3.10.0
+numpy==1.26.2
+keras==2.15.0
+tensorflow==2.15.0
+scikit-image==0.22.0
+scipy==1.11.4
+pillow==10.1.0
+matplotlib==3.8.2
+IPython==8.18.1

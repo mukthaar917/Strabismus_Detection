@@ -1,0 +1,7 @@
+# Python & Virtual Environment
+.venv/
+__pycache__/
+*.pyc
+
+# Local Pipeline Outputs (keep your raw images, ignore generated results/reports if desired)
+output/
